@@ -2,6 +2,22 @@
 
 #include "textflag.h"
 
+TEXT ·copy32B(SB), NOSPLIT, $0
+	MOVQ dst+0(FP), AX
+	MOVQ src+24(FP), BX
+    MOVOU (BX), X0
+    MOVOU X0, (AX)
+    MOVOU 16(BX), X1
+    MOVOU X1, 16(AX)
+	RET
+
+TEXT ·copySSE2(SB), NOSPLIT, $0
+	MOVQ dst+0(FP), AX
+	MOVQ src+24(FP), BX
+  MOVOU (BX), X0
+	MOVOU X0, (AX)
+	RET
+
 TEXT ·mulAVX2(SB), NOSPLIT, $0
 	MOVQ         table+0(FP), AX
 	MOVQ         AX, BX

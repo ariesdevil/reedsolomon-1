@@ -43,6 +43,7 @@ func New(data, parity int) (rs EncodeReconster, err error) {
 	t := genTables(g)
 	switch ins {
 	case AVX2:
+		t = genTablesgfw(g)
 		return rsAVX2{tables: t, in: data, out: parity}, nil
 	case SSSE3:
 		return rsSSSE3{tables: t, in: data, out: parity}, nil
@@ -156,6 +157,38 @@ func GetINS() int {
 	}
 }
 
+func genTablesgfw(gen Matrix) []byte {
+	rows := len(gen)
+	cols := len(gen[0])
+	tbl := make([]byte, 32*rows*cols)
+	cnt := 0
+	for _, g := range gen {
+		for _, c := range g {
+			t := combTable[c][:]
+			copy32B(tbl[cnt:cnt+32], t)
+			cnt += 32
+		}
+	}
+	return tbl
+}
+
+func genTablesNew(gen Matrix) []byte {
+	rows := len(gen)
+	cols := len(gen[0])
+	tables := make([]byte, 32*rows*cols)
+	for i := 0; i < cols; i++ {
+		for j := 0; j < rows; j++ {
+			c := gen[j][i]
+			offset := (i*rows + j) * 32
+			l := mulTableLow[c][:]
+			copySSE2(tables[offset:offset+16], l)
+			h := mulTableHigh[c][:]
+			copySSE2(tables[offset+16:offset+32], h)
+		}
+	}
+	return tables
+}
+
 func genTables(gen Matrix) []byte {
 	rows := len(gen)
 	cols := len(gen[0])
@@ -173,8 +206,41 @@ func genTables(gen Matrix) []byte {
 	return tables
 }
 
+//func genTablesNew(gen Matrix) []byte {
+//	rows := len(gen)
+//	cols := len(gen[0])
+//	tables := make([]byte, 32*rows*cols)
+//	offset := 0
+//	for j := 0; j < rows; j++ {
+//		for i := 0; i < cols; i++ {
+//			c := gen[j][i]
+//			l := mulTableLow[c][:]
+//			copy()
+//			offset += 32
+//
+//		}
+//	}
+//	for i := 0; i < cols; i++ {
+//		for j := 0; j < rows; j++ {
+//			c := gen[j][i]
+//			offset := (i*rows + j) * 32
+//			l := mulTableLow[c][:]
+//			copy(tables[offset:offset+16], l)
+//			h := mulTableHigh[c][:]
+//			copy(tables[offset+16:offset+32], h)
+//		}
+//	}
+//	return tables
+//}
+
 //go:noescape
 func hasAVX2() bool
 
 //go:noescape
 func hasSSSE3() bool
+
+//go:noescape
+func copySSE2(dst, src []byte) bool
+
+//go:noescape
+func copy32B(dst, src []byte) bool
