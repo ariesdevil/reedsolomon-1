@@ -4,7 +4,6 @@ import "errors"
 
 type EncodeReconster interface {
 	Encode(in, out Matrix) error
-	Reconst(dp Matrix, have, lost []int) error
 }
 
 type rsAVX2 rsSIMD
@@ -45,8 +44,6 @@ func New(data, parity int) (rs EncodeReconster, err error) {
 	case AVX2:
 		t = genTablesgfw(g)
 		return rsAVX2{tables: t, in: data, out: parity}, nil
-	case SSSE3:
-		return rsSSSE3{tables: t, in: data, out: parity}, nil
 	default:
 		err = ErrNonSupportINS
 		return
@@ -150,8 +147,6 @@ func CheckMatrixRows(d, p int, in, out Matrix) error {
 func GetINS() int {
 	if hasAVX2() {
 		return AVX2
-	} else if hasSSSE3() {
-		return SSSE3
 	} else {
 		return Base
 	}
@@ -235,9 +230,6 @@ func genTables(gen Matrix) []byte {
 
 //go:noescape
 func hasAVX2() bool
-
-//go:noescape
-func hasSSSE3() bool
 
 //go:noescape
 func copySSE2(dst, src []byte) bool

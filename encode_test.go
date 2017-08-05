@@ -2,6 +2,7 @@ package reedsolomon
 
 import (
 	"bytes"
+	"fmt"
 	"math/rand"
 	"testing"
 )
@@ -75,20 +76,45 @@ func TestGenTables(t *testing.T) {
 	}
 }
 
+func TestVMM(t *testing.T) {
+	d := 3
+	p := 2
+	size := 32
+	gen := genCauchyMatrix(d, p)
+	table := genTablesgfw(gen)
+	dp := NewMatrix(d+p, size)
+	for i := 0; i < d; i++ {
+		rand.Seed(int64(i))
+		fillRandom(dp[i])
+	}
+	var e EncodeReconster
+	e = rsAVX2{tables: table, in: d, out: p}
+	e.Encode(dp[:d], dp[d:])
+	// mulTable
+	fmt.Println(dp)
+	bDP := NewMatrix(d+p, size)
+	for i := 0; i < d; i++ {
+		copy(bDP[i], dp[i])
+	}
+	e2 := rsBase{gen: gen, in: d, out: p}
+	e2.Encode(bDP[:d], bDP[d:])
+	fmt.Println(bDP)
+
+	for i, asm := range dp {
+		if !bytes.Equal(asm, bDP[i]) {
+			//fmt.Println(asm)
+			//fmt.Println(bDP[i])
+			t.Fatal("verify failed, no match base version; shards: ", i)
+		}
+	}
+}
+
 // Check AVX2
 func TestVerifyAVX2_10x4x32K(t *testing.T) {
 	if !hasAVX2() {
 		t.Fatal("Verify AVX2: there is no AVX2")
 	}
 	verifyFastEncode(t, testNumIn, testNumOut, LoopSizeAVX2*4*32, AVX2)
-}
-
-// Check SSSE3
-func TestVerifySSSE3_10x4x32K(t *testing.T) {
-	if !hasSSSE3() {
-		t.Fatal("Verify SSSE3: there is no SSSE3")
-	}
-	verifyFastEncode(t, testNumIn, testNumOut, LoopSizeSSSE3*4*32, SSSE3)
 }
 
 // 1KB
@@ -190,19 +216,21 @@ func benchAVX2Encode(b *testing.B, d, p, size int) {
 
 func verifyFastEncode(t *testing.T, d, p, size, ins int) {
 	gen := genCauchyMatrix(d, p)
-	table := genTables(gen)
+	table := genTablesgfw(gen)
 	dp := NewMatrix(d+p, size)
 	for i := 0; i < d; i++ {
 		rand.Seed(int64(i))
 		fillRandom(dp[i])
 	}
 	var e EncodeReconster
-	switch ins {
-	case AVX2:
-		e = rsAVX2{tables: table, in: d, out: p}
-	case SSSE3:
-		e = rsSSSE3{tables: table, in: d, out: p}
-	}
+	//switch ins {
+	//case AVX2:
+	//	e = rsAVX2{tables: table, in: d, out: p}
+	//case SSSE3:
+	//	e = rsSSSE3{tables: table, in: d, out: p}
+	//}
+	e = rsAVX2{tables: table, in: d, out: p}
+
 	e.Encode(dp[:d], dp[d:])
 	// mulTable
 	bDP := NewMatrix(d+p, size)

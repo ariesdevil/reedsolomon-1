@@ -1,8 +1,16 @@
 package reedsolomon
 
 func (r rsAVX2) Encode(in, out Matrix) (err error) {
-
+	off := 0
+	for oi := 0; oi < r.out; oi++ {
+		vectMul(r.tables[off:], in, out[oi])
+		off += r.in * 32
+	}
+	return
 }
+
+//go:noescape
+func vectMul(tbl []byte, in Matrix, out []byte)
 
 //// Size of Shard must be integral multiple of 256B
 //func (r rsAVX2) Encode(in, out Matrix) (err error) {
