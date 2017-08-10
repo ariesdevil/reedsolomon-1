@@ -8,6 +8,7 @@ func (r rsAVX2) Encode(in, out Matrix) (err error) {
 	size := len(in[0])
 	start, end := 0, 0
 	do := UnitSize
+
 	if size <= UnitSize {
 		r.matrixMul(start, size, in, out)
 	} else {
@@ -24,6 +25,9 @@ func (r rsAVX2) Encode(in, out Matrix) (err error) {
 	}
 	return
 }
+
+//go:noescape
+func in0mulxor(tbl, in []byte, out Matrix)
 
 // Size of Shard must be integral multiple of 16B
 func (r rsSSSE3) Encode(in, out Matrix) (err error) {
@@ -60,20 +64,31 @@ func (r rsBase) Encode(in, out Matrix) (err error) {
 
 ////////////// internal functions //////////////
 
+func (r rsAVX2) matrixMulNew(in, out Matrix) {
+	
+}
+
 func (r rsAVX2) matrixMul(start, end int, in, out Matrix) {
-	for i := 0; i < r.in; i++ {
-		tmp := i * r.out
+	// TODO put this part into asm
+	// it means do not need to read in[0] again and again
+	off := 0
+	//in0mul(r.tables, in[0][start:end], out)
+	for oi := 0; oi < r.out; oi++ {
+		tbl := r.tables[off : off+32]
+		mulAVX2(tbl, in[0][start:end], out[oi][start:end])
+		off += 32
+	}
+	for i := 1; i < r.in; i++ {
 		for oi := 0; oi < r.out; oi++ {
-			offset := (tmp + oi) * 32
-			table := r.tables[offset : offset+32]
-			if i == 0 {
-				mulAVX2(table, in[i][start:end], out[oi][start:end])
-			} else {
-				mulXORAVX2(table, in[i][start:end], out[oi][start:end])
-			}
+			table := r.tables[off : off+32]
+			mulXORAVX2(table, in[i][start:end], out[oi][start:end])
+			off += 32
 		}
 	}
 }
+
+//go:noescape
+func in0mul(tbl []byte, data []byte, parity Matrix)
 
 //go:noescape
 func mulAVX2(table, in, out []byte)

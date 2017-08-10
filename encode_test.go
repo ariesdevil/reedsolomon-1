@@ -75,12 +75,64 @@ func TestGenTables(t *testing.T) {
 	}
 }
 
+//func TestIn0Mul(t *testing.T) {
+//	d := 1
+//	p := 2
+//	size := 32
+//	gen := genCauchyMatrix(d, p)
+//	fmt.Println(gen)
+//	table := genTables(gen)
+//	dp := NewMatrix(d+p, size)
+//	for i := 0; i < d; i++ {
+//		rand.Seed(int64(i))
+//		fillRandom(dp[i])
+//	}
+//	in0mul(table, dp[0], dp[1:])
+//	fmt.Println(dp)
+//	bDP := NewMatrix(d+p, size)
+//	for i := 0; i < d; i++ {
+//		copy(bDP[i], dp[i])
+//	}
+//	e2 := rsBase{gen: gen, in: d, out: p}
+//	e2.Encode(bDP[0:1], bDP[1:])
+//	fmt.Println(bDP)
+//}
+
+//func TestNewEncode(t *testing.T) {
+//	d := 3
+//	p := 2
+//	size := 256
+//	gen := genCauchyMatrix(d, p)
+//	table := genTables(gen)
+//	dp := NewMatrix(d+p, size)
+//	for i := 0; i < d; i++ {
+//		rand.Seed(int64(i))
+//		fillRandom(dp[i])
+//	}
+//	e := rsAVX2{tables: table, in: d, out: p}
+//
+//	e.Encode(dp[:d], dp[d:])
+//	fmt.Println(dp)
+//	//// mulTable
+//	//bDP := NewMatrix(d+p, size)
+//	//for i := 0; i < d; i++ {
+//	//	copy(bDP[i], dp[i])
+//	//}
+//	//e2 := rsBase{gen: gen, in: d, out: p}
+//	//e2.Encode(bDP[:d], bDP[d:])
+//	//for i, asm := range dp {
+//	//	if !bytes.Equal(asm, bDP[i]) {
+//	//		t.Fatal("verify failed, no match base version; shards: ", i)
+//	//	}
+//	//}
+//}
+
 // Check AVX2
 func TestVerifyAVX2_10x4x32K(t *testing.T) {
 	if !hasAVX2() {
 		t.Fatal("Verify AVX2: there is no AVX2")
 	}
-	verifyFastEncode(t, testNumIn, testNumOut, LoopSizeAVX2*4*32, AVX2)
+	verifyFastEncode(t, testNumIn, 1, LoopSizeAVX2*4*32, AVX2)
 }
 
 // Check SSSE3

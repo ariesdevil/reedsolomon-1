@@ -160,6 +160,25 @@ func genTables(gen Matrix) []byte {
 	rows := len(gen)
 	cols := len(gen[0])
 	tables := make([]byte, 32*rows*cols)
+	cnt := 0
+	for i := 0; i < cols; i++ {
+		for j := 0; j < rows; j++ {
+			c := gen[j][i]
+			tbl := combTable[c][:]
+			copy32B(tables[cnt:cnt+32], tbl)
+			cnt += 32
+		}
+	}
+	return tables
+}
+
+//go:noescape
+func copy32B(dst, src []byte)
+
+func genTablesOld(gen Matrix) []byte {
+	rows := len(gen)
+	cols := len(gen[0])
+	tables := make([]byte, 32*rows*cols)
 	for i := 0; i < cols; i++ {
 		for j := 0; j < rows; j++ {
 			c := gen[j][i]
@@ -178,3 +197,4 @@ func hasAVX2() bool
 
 //go:noescape
 func hasSSSE3() bool
+
