@@ -1,13 +1,53 @@
 package reedsolomon
 
 import (
-	"math/rand"
+	"bytes"
 	"strconv"
 	"strings"
 	"testing"
 )
 
+//func TestGenEncodeCauchy(t *testing.T) {
+//	c1 := GenEncodeMatrix(4, 2)
+//	c2 := genEncMatrixCauchy(4, 2)
+//	fmt.Println(c1)
+//	fmt.Println(c2)
+//}
+//
+//func TestNewInvert(t *testing.T) {
+//	raw1 := GenEncodeMatrix(4, 2)
+//	raw2 := genEncMatrixCauchy(4, 2)
+//	raw1.swapRows(0, 4)
+//	raw1.swapRows(1, 5)
+//	raw2.swap(0, 4, 4)
+//	raw2.swap(1, 5, 4)
+//	fmt.Println(raw1[:4].invert())
+//	fmt.Println(raw2[:16].invert(4))
+//}
 
+// TODO cmp newInvert invert
+
+func TestNewInvert(t *testing.T) {
+	for i := 1; i < 128; i++ {
+		m := genCauchyMatrix(i, i)
+		i1, err := m.invert()
+		if err != nil {
+			t.Fatal(err)
+		}
+		ms := newMatrix(i, i)
+		for j := range m {
+			copy(ms[j*i:j*i+i], m[j])
+		}
+		i2, err := ms.invert(i)
+		i1s := make([]byte, i*i)
+		for j := range i1 {
+			copy(i1s[j*i:j*i+i], i1[j])
+		}
+		if !bytes.Equal(i1s, i2) {
+			t.Fatal("invert new fault", i1, i2)
+		}
+	}
+}
 
 func TestMatrixInverse(t *testing.T) {
 	testCases := []struct {
@@ -104,18 +144,41 @@ func BenchmarkInvert10x10(b *testing.B) {
 }
 
 func BenchmarkInvert28x28(b *testing.B) {
-	benchmarkInvert(b, 10)
+	benchmarkInvert(b, 28)
+}
+
+func BenchmarkNewInvert10x10(b *testing.B) {
+	benchmarkInvertNew(b, 10)
+}
+
+func BenchmarkNewInvert28x28(b *testing.B) {
+	benchmarkInvertNew(b, 28)
 }
 
 func benchmarkInvert(b *testing.B, size int) {
-	m := NewMatrix(size, size)
-	rand.Seed(0)
-	for i := 0; i < size; i++ {
-		fillRandom(m[i])
-	}
+	m := GenEncodeMatrix(size, 2)
+	m.swapRows(0, size)
+	m.swapRows(1, size+1)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		m.invert()
+		_, err := m[:size].invert()
+		if err != nil {
+			b.Fatal(b)
+		}
+	}
+}
+
+func benchmarkInvertNew(b *testing.B, size int) {
+	m := genEncMatrixCauchy(size, 2)
+	m.swap(0, size, size)
+	m.swap(1, size+1, size)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		//copy(m1, m[:size*size])
+		_, err := matrix(m[:size*size]).invert(size)
+		if err != nil {
+			b.Fatal(b)
+		}
 	}
 }
 
